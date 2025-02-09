@@ -1,16 +1,38 @@
-# This is a sample Python script.
+# Source for reference https://www.geeksforgeeks.org/floyd-warshall-algorithm-in-python/
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+# Large Infinity Value
+infinity = 9999999
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def floydWarshall(graph, v):
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    distMatrix = list(map(lambda i: list(map(lambda j: j, i)), graph))
+
+    # Adding up vertices one by one
+    for k in range(v):
+        # All vertices as source
+        for i in range(v):
+            # All vertices as destination
+            for j in range(v):
+
+                distMatrix[i][j] = min(distMatrix[i][j], distMatrix[i][k] + distMatrix[k][j])
+
+# Sourced From Geeks for Geeks
+def printMatrix(distMatrix, v):
+    for i in range(v):
+        for j in range(v):
+            if distMatrix[i][j] == infinity:
+                print("%7s" % "infinity", end=" ")
+            else:
+                print("%7d\t" % (distMatrix[i][j]), end=' ')
+            if j == v - 1:
+                print()
+
+# Driver's code
+if __name__ == "__main__":
+
+    # TO BE REPLACED WITH QUACKSTON
+    testGraph = []
+
+    # Function call
+    floydWarshall(testGraph, 0)
