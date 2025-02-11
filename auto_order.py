@@ -11,15 +11,15 @@ def rename_and_convert_files(directory):
     # Sort files to maintain consistent order (if needed)
     files.sort()
 
-    # Start with an incrementing counter
+    # Start with an incrementing counter at 000
     counter = 0
 
     for file in files:
         # Get the file extension
         file_extension = os.path.splitext(file)[1].lower()
 
-        # Define new filename with zero-padded increment
-        new_filename = f"team13_{counter:03}.jpg"
+        # Define new filename with the increment starting at 000 (zero-padded)
+        new_filename = f"team13_{counter:03}.jpg"  # Zero-padded 3 digits
 
         # Construct full file paths
         old_file_path = os.path.join(directory, file)
@@ -43,6 +43,6 @@ def rename_and_convert_files(directory):
         counter += 1
 
 # Usage
-directory_path = "./new_photos"  # Update this with your directory path
+directory_path = "./original_photos/new_photos"
 rename_and_convert_files(directory_path)
 
