@@ -90,7 +90,7 @@ spec = object_detector.EfficientDetLite0Spec()
 model = object_detector.create(train_data=train_data,
                                model_spec=spec,
                                validation_data=validation_data,
-                               epochs=25,
+                               epochs=50,
                                batch_size=10,
                                train_whole_model=True)
 
