@@ -1,0 +1,8 @@
+Sup girl. Here da steps. 
+
+Step 1) put all raw images into original_photos.
+Step 2) run "python3 image_resize.py". This will take all photos, convert them to jpg and a 320x320 resolution.
+step 3) Upload created images in original_photos/new_photos to label studio for labelling
+Step 4) Label and then export the photos into a zip file (done natively)
+Step 5) unzip the created File. This will create a folder with Annotations, and images. Take all the created XML files in Annotations and put it in MachineLearning/dataset/Annotations, and images into MachineLearning/dataset/images, and PLEASE DELETE THE dataset.zip AND REZIP SO ITS ALWAYS UPDATED.
+Step 6) YAYYY -> go crazy go wild 
