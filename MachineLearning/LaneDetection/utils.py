@@ -1,17 +1,17 @@
 import cv2
 import numpy as np
+import time
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-import time
 
 def process_image(img, height, width):
-    # HSV color ranges
+    # HSV color ranges for lane detection
     yellow_lower = np.array([15, 100, 100])
     yellow_upper = np.array([30, 255, 255])
     white_lower = np.array([0, 0, 200])
     white_upper = np.array([255, 30, 255])
     
-    # Height to consider
+    # Region of interest (ROI)
     roi_top = 0.6  
     roi_bottom = 1.0
     
@@ -40,8 +40,9 @@ def process_image(img, height, width):
     
     return edges
 
+def camera_feed():
+    global process_flag
 
-def process_picarx_video():
     # Initialize PiCamera
     camera = PiCamera()
     camera.resolution = (640, 480)  # Set resolution
@@ -55,27 +56,25 @@ def process_picarx_video():
         # Grab the raw NumPy array representing the image
         image = frame.array
 
-        # Process the image
-        height, width = image.shape[:2]
-        edges = process_image(image, height, width)
+        # Display the raw camera feed
+        cv2.imshow("Camera Feed", image)
 
-        # Calculate steering angle
-        angle = calculate_steering_angle(edges, width)
-
-        # Control PiCar-X based on the angle
-        control_picarx(angle)
-
-        # Display the processed frame
-        cv2.imshow("Processed Frame", edges)
+        # If processing is enabled, process the image and control PiCar-X
+        if process_flag:
+            height, width = image.shape[:2]
+            edges = process_image(image, height, width)
+            angle = calculate_steering_angle(edges, width)
+            control_picarx(angle)
+            cv2.imshow("Processed Frame", edges)
 
         # Clear the stream for the next frame
         raw_capture.truncate(0)
 
-        # Break the loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        # Check for key presses
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):  # Quit
             break
+        elif key == ord('p'):  # Toggle processing
+            process_flag = not process_flag
+            print(f"Processing enabled: {process_flag}")
 
-    # Release resources
-    camera.close()
-    px.stop()
-    cv2.destroyAllWindows()
