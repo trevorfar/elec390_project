@@ -17,8 +17,8 @@ gaussian_kernel = (7, 7)
 # Canny edge detection thresholds
 canny_thresholds = (50, 150)
 
-# Hough Transform parameters (adjusted for dotted lines)
-hough_params = (1, np.pi/180, 30, 20, 50)  # rho, theta, threshold, minLineLength, maxLineGap
+# Hough Transform parameters
+hough_params = (1, np.pi/180, 30, 40, 20)
 
 # Region of Interest (crop top half of the image)
 roi_height_ratio = 0.6
@@ -31,10 +31,6 @@ def process_image(img):
     # Create binary masks for white and yellow lines
     white_mask = cv2.inRange(hsv, white_lower, white_upper)
     yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
-    
-    # Use morphological operations to connect dotted yellow lines
-    kernel = np.ones((9, 9), np.uint8)  # Kernel size for dilation
-    yellow_mask = cv2.dilate(yellow_mask, kernel, iterations=2)  # Increase iterations to connect larger gaps
     
     # Combine masks
     combined_mask = cv2.bitwise_or(white_mask, yellow_mask)
