@@ -1,133 +1,106 @@
 import cv2
 import numpy as np
 
-# Load image in BGR format
-image = cv2.imread('team13_002.jpg')
-
-# Parameters for white and yellow line detection
-white_lower = np.array([0, 0, 200])    # Lower HSV threshold for white
-white_upper = np.array([255, 30, 255]) # Upper HSV threshold for white
-
-yellow_lower = np.array([20, 100, 100])  # Lower HSV threshold for yellow
-yellow_upper = np.array([30, 255, 255]) # Upper HSV threshold for yellow
-
-# Gaussian blur kernel size
-gaussian_kernel = (7, 7)
-
-# Canny edge detection thresholds
-canny_thresholds = (50, 150)
-
-# Hough Transform parameters
-hough_params = (1, np.pi/180, 30, 40, 20)
-
-# Region of Interest (crop top half of the image)
-roi_height_ratio = 0.6
-
-# Processing pipeline
-def process_image(img):
-    # Convert to HSV color space
+def detect_lane_markings(img, height, width):
+    # HSV color ranges
+    yellow_lower = np.array([15, 100, 100])
+    yellow_upper = np.array([30, 255, 255])
+    white_lower = np.array([0, 0, 200])
+    white_upper = np.array([255, 30, 255])
+    
+    # ROI parameters
+    roi_top = 0.5  # Ignore top 40%
+    roi_bottom = 0.5  # Focus on lower 60%
+    
+    # Convert to HSV and create masks
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    
-    # Create binary masks for white and yellow lines
-    white_mask = cv2.inRange(hsv, white_lower, white_upper)
     yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+    white_mask = cv2.inRange(hsv, white_lower, white_upper)
     
-    # Combine masks
-    combined_mask = cv2.bitwise_or(white_mask, yellow_mask)
+    # Combine masks with weighting
+    combined = cv2.addWeighted(yellow_mask, 1.0, white_mask, 0.5, 0)
     
-    # Apply Gaussian blur
-    blurred = cv2.GaussianBlur(combined_mask, gaussian_kernel, 0)
+    # ROI Masking instead of Cropping
+    mask = np.zeros_like(combined)
+    roi_vertices = np.array([[(0, height), (width, height), (width, int(height * roi_bottom)), (0, int(height * roi_bottom))]], dtype=np.int32)
+    cv2.fillPoly(mask, roi_vertices, 255)
+    roi = cv2.bitwise_and(combined, mask)
     
-    # Canny edge detection
-    edges = cv2.Canny(blurred, *canny_thresholds)
+    # Edge detection
+    blurred = cv2.GaussianBlur(roi, (5,5), 0)
+    edges = cv2.Canny(blurred, 50, 150)
     
-    # Crop top half (keep bottom half)
-    height = img.shape[0]
-    cropped = edges[int(height * roi_height_ratio):, :]
+    # Hough line detection with a fallback
+    lines = cv2.HoughLinesP(edges, 1, np.pi/180, 20, minLineLength=30, maxLineGap=10)
+    if lines is None:
+        lines = []
     
-    # Probabilistic Hough Transform
-    lines = cv2.HoughLinesP(cropped, *hough_params)
-    
-    return {
-        'original': img,
-        'hsv': hsv,
-        'white_mask': white_mask,
-        'yellow_mask': yellow_mask,
-        'combined_mask': combined_mask,
-        'edges': edges,
-        'cropped': cropped,
-        'lines': lines
-    }
+    return lines, roi, edges
 
-# Process the image
-results = process_image(image)
-
-# Function to calculate line positions
-def calculate_line_positions(lines, height, width):
+def classify_lines(lines, img_width):
     left_lines = []
     right_lines = []
-    center_lines = []
     
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            slope = (y2 - y1) / (x2 - x1 + 1e-6)  # Avoid division by zero
-            
-            # Classify lines based on slope and position
-            if slope < -0.5:  # Left lane line (negative slope)
-                left_lines.append((x1, y1, x2, y2))
-            elif slope > 0.5:  # Right lane line (positive slope)
-                right_lines.append((x1, y1, x2, y2))
-            else:  # Center line (near horizontal)
-                center_lines.append((x1, y1, x2, y2))
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        dx = x2 - x1
+        dy = y2 - y1
+        
+        # Ensure the line is not too horizontal
+        if abs(dy) < abs(dx) * 0.5:  # Filters out near-horizontal lines
+            continue
+        
+        midpoint_x = (x1 + x2) / 2
+        slope = dy / dx if dx != 0 else float('inf')
+        
+        if midpoint_x < img_width * 0.5 and slope < 0:  # Left lane (negative slope)
+            left_lines.append(line[0])
+        elif midpoint_x >= img_width * 0.5 and slope > 0:  # Right lane (positive slope)
+            right_lines.append(line[0])
     
-    return left_lines, right_lines, center_lines
+    return left_lines, right_lines
 
-# Calculate line positions
-height, width = image.shape[:2]
-left_lines, right_lines, center_lines = calculate_line_positions(results['lines'], height, width)
-
-# Draw detected lines on the original image
-output = image.copy()
-
-def draw_lines(image, lines, color, thickness=3):
+def draw_adjusted_lines(img, lines, color, side, height, roi_offset):
     for line in lines:
         x1, y1, x2, y2 = line
-        cv2.line(image, (x1, y1 + int(height * roi_height_ratio)), 
-                 (x2, y2 + int(height * roi_height_ratio)), color, thickness)
-
-# Draw left lines (white)
-draw_lines(output, left_lines, (255, 0, 0))  # Blue for left lines
-
-# Draw right lines (white)
-draw_lines(output, right_lines, (0, 255, 0))  # Green for right lines
-
-# Draw center lines (yellow)
-draw_lines(output, center_lines, (0, 0, 255))  # Red for center lines
-
-# Calculate car position relative to center line
-def calculate_car_position(center_lines, width):
-    if len(center_lines) > 0:
-        # Average x-position of center lines
-        avg_x = np.mean([(x1 + x2) / 2 for x1, _, x2, _ in center_lines])
-        # Car position relative to center line
-        if avg_x < width / 2:
-            return "Left of center"
+        y1 += roi_offset
+        y2 += roi_offset
+        
+        # Extend lines to the bottom of the image
+        if side == 'left':
+            new_y1 = height
+            new_x1 = int(x1 + (new_y1 - y1) * (x2 - x1) / (y2 - y1))
+            cv2.line(img, (new_x1, new_y1), (x1, y1), color, 3)
         else:
-            return "Right of center"
-    return "No center line detected"
+            new_y2 = height
+            new_x2 = int(x2 + (new_y2 - y2) * (x1 - x2) / (y1 - y2))
+            cv2.line(img, (new_x2, new_y2), (x2, y2), color, 3)
 
-car_position = calculate_car_position(center_lines, width)
-cv2.putText(output, f"Position: {car_position}", (10, 30), 
-            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+def calculate_position(left, right, img_width):
+    if not left or not right:
+        return "Lane keeping mode"
+    
+    left_x = np.mean([x2 for _, _, x2, _ in left]) if left else 0
+    right_x = np.mean([x2 for _, _, x2, _ in right]) if right else img_width
+    lane_center = (left_x + right_x) / 2
+    offset = (lane_center - img_width / 2) / (img_width / 2)
+    
+    if abs(offset) < 0.1:
+        return "Centered"
+    return "Drifting left" if offset < 0 else "Drifting right"
 
-# Save the final output image
-cv2.imwrite('lane_detection_output.jpg', output)
-print("Output saved as lane_detection_output.jpg")
+# Main Processing
+image = cv2.imread('team13_009.jpg')
+height, width = image.shape[:2]
+lines, roi, edges = detect_lane_markings(image, height, width)
+left_lines, right_lines = classify_lines(lines, width)
+output = image.copy()
+roi_offset = int(height * 0.4)
 
-# Save intermediate steps (optional)
-cv2.imwrite('white_mask.jpg', results['white_mask'])
-cv2.imwrite('yellow_mask.jpg', results['yellow_mask'])
-cv2.imwrite('edges.jpg', results['edges'])
-cv2.imwrite('cropped_edges.jpg', results['cropped'])
-print("Intermediate steps saved as white_mask.jpg, yellow_mask.jpg, edges.jpg, cropped_edges.jpg")
+draw_adjusted_lines(output, left_lines, (0, 0, 255), 'left', height, roi_offset)
+draw_adjusted_lines(output, right_lines, (0, 255, 0), 'right', height, roi_offset)
+
+position = calculate_position(left_lines, right_lines, width)
+cv2.putText(output, position, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+cv2.imwrite('lane_output.jpg', output)
+print("Processing complete - output saved as lane_output.jpg")
