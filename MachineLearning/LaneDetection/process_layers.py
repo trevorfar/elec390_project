@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
 
 def process_image(img, height, width):
     # HSV color ranges
@@ -38,41 +41,45 @@ def process_image(img, height, width):
     return edges
 
 # Main function for video processing
-def process_video(video_path, output_path=None):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print("Error: Could not open video.")
-        return
+def process_picarx_video(output_path=None):
+    # Initialize PiCamera
+    camera = PiCamera()
+    camera.resolution = (640, 480)
+    camera.framerate = 30  
+    raw_capture = PiRGBArray(camera, size=(640, 480))
     
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    # Allow the camera to warm up
+    time.sleep(0.1)
     
     if output_path:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for .mp4
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height), isColor=False)
+        out = cv2.VideoWriter(output_path, fourcc, 30, (640, 480), isColor=False)
     
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break  # End of video
+    for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+        image = frame.array
         
-        processed_frame = process_image(frame, height, width)
+        processed_frame = process_image(image, 480, 640)
         
+        # Display the processed frame
         cv2.imshow("Processed Frame", processed_frame)
         
+        # Save the processed frame if output path is provided
         if output_path:
             out.write(processed_frame)
         
+        # Clear the stream for the next frame
+        raw_capture.truncate(0)
+        
+        # Break the loop if 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
     # Release resources
-    cap.release()
+    camera.close()
     if output_path:
         out.release()
     cv2.destroyAllWindows()
 
-video_path = "input_video.mp4"  
-output_path = "output_video.mp4" 
-process_video(video_path, output_path)
+# Run the PiCar-X video processing
+output_path = "output_video.mp4"  # Optional: Save the processed video
+process_picarx_video(output_path)
