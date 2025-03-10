@@ -1,3 +1,7 @@
+import numpy as np
+import cv2
+from picarx import Picarx
+
 
 def detect_lane_centroids(img, height, width):
     yellow_lower = np.array([15, 100, 100])
