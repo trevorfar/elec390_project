@@ -4,12 +4,15 @@ import time
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 
+
 def process_image(img, height, width):
     # HSV color ranges for lane detection
     yellow_lower = np.array([15, 100, 100])
     yellow_upper = np.array([30, 255, 255])
+    #original 0 0 200
+    #original 255 30 255
     white_lower = np.array([0, 0, 200])
-    white_upper = np.array([255, 30, 255])
+    white_upper = np.array([180, 60, 255])
     
     # Region of interest (ROI)
     roi_top = 0.6  
@@ -41,7 +44,8 @@ def process_image(img, height, width):
     return edges
 
 def camera_feed():
-    global process_flag
+    #global process_flag = 1
+    process_flag = 1
 
     # Initialize PiCamera
     camera = PiCamera()
@@ -51,7 +55,7 @@ def camera_feed():
 
     # Allow the camera to warm up
     time.sleep(0.1)
-
+    
     for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
         # Grab the raw NumPy array representing the image
         image = frame.array
@@ -63,8 +67,8 @@ def camera_feed():
         if process_flag:
             height, width = image.shape[:2]
             edges = process_image(image, height, width)
-            angle = calculate_steering_angle(edges, width)
-            control_picarx(angle)
+            #angle = calculate_steering_angle(edges, width)
+            #control_picarx(angle)
             cv2.imshow("Processed Frame", edges)
 
         # Clear the stream for the next frame
@@ -77,4 +81,4 @@ def camera_feed():
         elif key == ord('p'):  # Toggle processing
             process_flag = not process_flag
             print(f"Processing enabled: {process_flag}")
-
+print("Trevors a cuck")
