@@ -8,7 +8,6 @@ def process_image(img, height, width):
     white_lower = np.array([0, 0, 200])
     white_upper = np.array([255, 30, 255])
     
-    # Region of Interest (ROI) bounds
     roi_top = 0.6  
     roi_bottom = 1.0  
 
@@ -48,9 +47,8 @@ def process_image(img, height, width):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             centroid_points.append((cx, cy))
-            cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1)  # Draw centroids
+            cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1) 
 
-    # Save output images for debugging
     cv2.imwrite('output_images/1_hsv.jpg', hsv)
     cv2.imwrite('output_images/2_yellow_mask.jpg', yellow_mask)
     cv2.imwrite('output_images/3_white_mask.jpg', white_mask)
@@ -60,9 +58,8 @@ def process_image(img, height, width):
     cv2.imwrite('output_images/7_edges.jpg', edges)
     cv2.imwrite('output_images/8_centroids.jpg', img)
 
-    return centroid_points  # Return centroids for further processing
+    return centroid_points
 
-# Main execution
 image = cv2.imread('team13_002.jpg')
 height, width = image.shape[:2]
 centroids = process_image(image, height, width)
