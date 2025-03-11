@@ -22,8 +22,10 @@ def detect_lane_centroids(img, height, width):
 
     # --- Triangular ROI ---
     roi_points = np.array([
-        [0, height],         # Bottom-left
+        [0, height],
+	[0, 3*height//4], 	         # Bottom-left
         [width // 2, height // 2],  # Middle-top
+	[width, 3*height//4],	
         [width, height]      # Bottom-right
     ], np.int32)
 
