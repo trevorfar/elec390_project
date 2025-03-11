@@ -128,6 +128,24 @@ for frame in vision.get_frames():
 #            if(current_grayscale_value[0]>250 and current_grayscale_value[1]>250 and current_grayscale_value[2]>250):
 #                print("stoppiong")
 #            print("awake")
+
+from functions import detect_lane_centroids, process_image
+from picarx import Picarx
+import cv2
+import numpy as np
+from aiymakerkit import vision
+px = Picarx()
+
+while True:
+    frame = vision.get_frames()  # Get camera feed
+    processed = process_image(frame)  # Process and compute steering
+    cv2.imshow("Lane Detection", processed)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cv2.destroyAllWindows()
+px.stop()
 #        elif (objects[0].id == 6):
 #        
 #        elif (objects[0].id == 0):
