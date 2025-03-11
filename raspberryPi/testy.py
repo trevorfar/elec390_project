@@ -44,6 +44,8 @@ def detect_lane_centroids(img, height, width):
             cy = int(M["m01"] / M["m00"])
             centroid_points.append((cx, cy))
             cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1) 
+    return centroid_points
+
 def process_image(img):
     height, width = img.shape[:2]
     image_center_x = width // 2
