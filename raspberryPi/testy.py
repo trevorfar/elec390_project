@@ -20,20 +20,23 @@ def detect_lane_centroids(img, height, width):
     # Combine masks
     combined = cv2.addWeighted(yellow_mask, 1.0, white_mask, 1.0, 0)
 
-    # --- Circular ROI ---
-    roi_center = (width // 2, height // 2)  # Center of the frame
-    roi_radius = int(np.sqrt(0.2 * width * height / np.pi))  # Dynamic radius
+    # --- Triangular ROI ---
+    roi_points = np.array([
+        [0, height],         # Bottom-left
+        [width // 2, height // 2],  # Middle-top
+        [width, height]      # Bottom-right
+    ], np.int32)
+
+    # Create mask for the ROI
+    mask = np.zeros_like(combined)
+    cv2.fillPoly(mask, [roi_points], 255)  # Fill the triangular ROI with white
+
+    # Invert mask: Everything outside the ROI is white (shaded area)
+    mask_inv = cv2.bitwise_not(mask)
 
     # Create a full-screen dark overlay
     overlay = img.copy()
     overlay[:] = (0, 100, 0)  # Dark green tint
-
-    # Create a mask for the ROI
-    mask = np.zeros_like(combined)
-    cv2.circle(mask, roi_center, roi_radius, 255, thickness=-1)  # White-filled circle in the mask
-
-    # Invert mask: Everything outside the ROI is white (shaded area)
-    mask_inv = cv2.bitwise_not(mask)
 
     # Apply the mask to the overlay (shade only outside ROI)
     shaded_area = cv2.bitwise_and(overlay, overlay, mask=mask_inv)
@@ -42,8 +45,8 @@ def detect_lane_centroids(img, height, width):
     alpha = 0.5  # Transparency level
     img[:] = cv2.addWeighted(img, 1, shaded_area, alpha, 0)
 
-    # Draw ROI boundary in red
-    cv2.circle(img, roi_center, roi_radius, (0, 0, 255), 2)
+    # Draw the ROI boundary in red
+    cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
 
     # Apply preprocessing
     blurred = cv2.GaussianBlur(combined, (5,5), 0)
@@ -61,7 +64,6 @@ def detect_lane_centroids(img, height, width):
             centroid_points.append((cx, cy))
             cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1)  # Draw centroids
     return centroid_points
-
 
 
 def process_image(img):
