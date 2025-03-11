@@ -61,10 +61,13 @@ def detect_lane_centroids(img, height, width):
         if M["m00"] != 0:
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
-            centroid_points.append((cx, cy))
-            cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1)  # Draw centroids
-    return centroid_points
+            
+            # Check if centroid is within the ROI
+            if cv2.pointPolygonTest(roi_points, (cx, cy), False) >= 0:
+                centroid_points.append((cx, cy))
+                cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1)  # Draw valid centroids
 
+    return centroid_points
 
 def process_image(img):
     height, width = img.shape[:2]
