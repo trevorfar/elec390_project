@@ -3,6 +3,7 @@ from picarx import Picarx
 import cv2
 import numpy as np
 from aiymakerkit import vision
+
 px = Picarx()
 
 def detect_lane_centroids(img, height, width):
@@ -55,17 +56,32 @@ def process_image(img):
         lowest_centroid = max(centroid_points, key=lambda p: p[1])
         target_x, _ = lowest_centroid
         error = target_x - image_center_x
-        Kp = 0.1 
-        steering_angle = np.clip(Kp * error, -30, 30)
+
+        # Steering control (P-controller)
+        Kp_steering = 0.1 
+        steering_angle = np.clip(Kp_steering * error, -30, 30)
         px.set_dir_servo_angle(steering_angle)
-        print(f"Steering angle: {steering_angle}")
+
+        # Speed control: Slow down if turning sharply
+        Kp_speed = 1.5  # Adjust speed based on centering error
+        base_speed = 30  # Base speed when centered
+        speed_adjustment = max(10, base_speed - abs(Kp_speed * error))  # Min speed of 10
+        px.forward(speed_adjustment)
+
+        print(f"Steering: {steering_angle:.2f}, Speed: {speed_adjustment:.2f}")
+    else:
+        # Stop if no lane detected
+        px.stop()
+
     return img
 
-for frame in vision.get_frames():
-    processed = process_image(frame)  # Process and compute steering
-    cv2.imwrite("lane_detection_output.jpg", processed)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+try:
+    for frame in vision.get_frames():
+        processed = process_image(frame)
+        cv2.imwrite("lane_detection_output.jpg", processed)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+finally:
+    px.stop()  # Ensure the car stops when exiting
+    cv2.destroyAllWindows()
 
-cv2.destroyAllWindows()
-px.stop()
