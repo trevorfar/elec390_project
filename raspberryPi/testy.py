@@ -18,7 +18,7 @@ def detect_lane_centroids(img, height, width):
     white_mask = cv2.inRange(hsv, white_lower, white_upper)
 
     # Combine masks
-    combined = cv2.addWeighted(yellow_mask, 1.0, white_mask, 1.0, 0)
+    combined = cv2.addWeighted(yellow_mask, 1.0, white_mask, 0.5, 0)
 
     # --- Triangular ROI ---
     roi_points = np.array([
