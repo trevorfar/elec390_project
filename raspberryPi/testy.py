@@ -3,7 +3,6 @@ from picarx import Picarx
 import cv2
 import numpy as np
 from aiymakerkit import vision
-from sklearn.cluster import DBSCAN
 
 px = Picarx()
 
@@ -74,6 +73,37 @@ def detect_lane_centroids(img, height, width):
     return centroid_points
     #return db.labels_
 
+def convert_yellow_to_white(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Define yellow color range
+    yellow_lower = np.array([15, 100, 100])
+    yellow_upper = np.array([30, 255, 255])
+
+    # Create a mask for yellow
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+
+    # Replace yellow pixels with white
+    img[yellow_mask > 0] = [255, 255, 255]  # Set to white (BGR)
+
+    return img
+
+def process_image(img):
+    img = convert_yellow_to_white(img)  # Convert yellow to white first
+    height, width = img.shape[:2]
+    image_center_x = width // 2
+
+    centroid_points = detect_lane_centroids(img, height, width)
+    if len(centroid_points) > 0:
+        lowest_centroid = max(centroid_points, key=lambda p: p[1])
+        target_x, _ = lowest_centroid
+        error = target_x - image_center_x
+    else:
+        px.stop()
+
+    return img
+
+"""
 def process_image(img):
     height, width = img.shape[:2]
     image_center_x = width // 2
@@ -101,7 +131,7 @@ def process_image(img):
         px.stop()
 
     return img
-
+"""
 try:
     for frame in vision.get_frames():
         processed = process_image(frame)
@@ -111,4 +141,3 @@ try:
 finally:
     px.stop()  # Ensure the car stops when exiting
     cv2.destroyAllWindows()
-
