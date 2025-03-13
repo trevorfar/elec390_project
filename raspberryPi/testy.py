@@ -3,6 +3,7 @@ from picarx import Picarx
 import cv2
 import numpy as np
 from aiymakerkit import vision
+from sklearn.cluster import DBSCAN
 
 px = Picarx()
 
@@ -23,10 +24,10 @@ def detect_lane_centroids(img, height, width):
     # --- Triangular ROI ---
     roi_points = np.array([
         [0, height],
-	[0, 3*height//4], 	         # Bottom-left
+        [0, 3*height//4],           # Bottom-left
         [width // 2, height // 2],  # Middle-top
-	[width, 3*height//4],	
-        [width, height]      # Bottom-right
+        [width, 3*height//4],       # Bottom-right
+        [width, height]             # Bottom-right
     ], np.int32)
 
     # Create mask for the ROI
@@ -51,9 +52,9 @@ def detect_lane_centroids(img, height, width):
     cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
 
     # Apply preprocessing
-    blurred = cv2.GaussianBlur(combined, (5,5), 0)
+    blurred = cv2.GaussianBlur(combined, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150)
-
+    cv2.imshow("EDGES", edges)
     # Find contours
     contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -69,7 +70,9 @@ def detect_lane_centroids(img, height, width):
                 centroid_points.append((cx, cy))
                 cv2.circle(img, (cx, cy), 5, (0, 255, 0), -1)  # Draw valid centroids
 
+    
     return centroid_points
+    #return db.labels_
 
 def process_image(img):
     height, width = img.shape[:2]
@@ -82,17 +85,17 @@ def process_image(img):
         error = target_x - image_center_x
 
         # Steering control (P-controller)
-        Kp_steering = 0.1 
-        steering_angle = np.clip(Kp_steering * error, -30, 30)
-        px.set_dir_servo_angle(steering_angle)
+        #Kp_steering = 0.1 
+        #steering_angle = np.clip(Kp_steering * error, -30, 30)
+        #px.set_dir_servo_angle(steering_angle)
 
         # Speed control: Slow down if turning sharply
-        Kp_speed = 1.5  # Adjust speed based on centering error
-        base_speed = 30  # Base speed when centered
-        speed_adjustment = max(10, base_speed - abs(Kp_speed * error))  # Min speed of 10
-        px.forward(speed_adjustment)
+        #Kp_speed = 1.5  # Adjust speed based on centering error
+        #base_speed = 30  # Base speed when centered
+        #speed_adjustment = max(10, base_speed - abs(Kp_speed * error))  # Min speed of 10
+        #px.forward(speed_adjustment)
 
-        print(f"Steering: {steering_angle:.2f}, Speed: {speed_adjustment:.2f}")
+        #print(f"Steering: {steering_angle:.2f}")
     else:
         # Stop if no lane detected
         px.stop()
