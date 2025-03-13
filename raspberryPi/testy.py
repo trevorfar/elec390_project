@@ -1,10 +1,15 @@
 import os
 from picarx import Picarx
+import time
 import cv2
 import numpy as np
 from aiymakerkit import vision
+import readchar
 
 px = Picarx()
+
+px.set_cam_tilt_angle(-10)
+#px.set_cam_pan_angle(pan_angle)
 
 def detect_lane_centroids(img, height, width):
     yellow_lower = np.array([15, 100, 100])
@@ -24,7 +29,7 @@ def detect_lane_centroids(img, height, width):
     roi_points = np.array([
         [0, height],
         [0, 3*height//4],           # Bottom-left
-        [width // 2, height // 2],  # Middle-top
+        #[width // 2, height // 2],  # Middle-top
         [width, 3*height//4],       # Bottom-right
         [width, height]             # Bottom-right
     ], np.int32)
@@ -90,14 +95,31 @@ def convert_yellow_to_white(img):
 
 def process_image(img):
     img = convert_yellow_to_white(img)  # Convert yellow to white first
-    height, width = img.shape[:2]
+    height, width = img.shape[:2]  # Get height and width
+    #bottom_half = img[h // 2 : h, :]  # Select bottom half explicitly
+    #height, width = bottom_half.shape[:2]
     image_center_x = width // 2
+    image_center_y = height // 2
+
 
     centroid_points = detect_lane_centroids(img, height, width)
     if len(centroid_points) > 0:
         lowest_centroid = max(centroid_points, key=lambda p: p[1])
         target_x, _ = lowest_centroid
         error = target_x - image_center_x
+     
+
+        #Steeringcontrol (P-controller)
+        Kp_steering = 0.1 
+        steering_angle = np.clip(Kp_steering * error, -30, 30)
+        px.set_dir_servo_angle(steering_angle)
+
+         #Speed control: Slow down if turning sharply
+        Kp_speed = 3  # Adjust speed based on centering error
+        base_speed = 1  # Base speed when centered
+        #time.sleep(5)
+        speed_adjustment = max(1, base_speed - abs(Kp_speed * error))  # Min speed of 10
+        px.forward(speed_adjustment)
     else:
         px.stop()
 
