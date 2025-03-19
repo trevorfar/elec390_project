@@ -44,19 +44,21 @@ def handleState(currState):
         print(currGray)
         if sum(currGray) == 1000:
             px.forward(0)
-            currState = 5  # Transition to going straight
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
+        px.forward(0)
         # You can implement further logic to slow down or stop
     elif currState == 3:
         print("Turning left")
+        px.forward(0)
         # Implement left turn logic
     elif currState == 4:
         print("Turning right")
+        px.forward(0)
         # Implement right turn logic
     elif currState == 5:
         print("Going straight")
-        px.forward(100)  # Go straight
+        px.forward(0)  # Go straight
 
     return currState
 #Model
@@ -77,7 +79,7 @@ for frame in vision.get_frames():
             #ducks in the road or yield sign, proceed with caution:
             if (thing.id == 0 or thing.id == 1 or thing.id == 6):
                 print("yield state")
-                currState = 2
+                #urrState = 2
             #stop sign detected
             if (thing.id == 2):
                 print("dis bish a stop sign please slip it in")
