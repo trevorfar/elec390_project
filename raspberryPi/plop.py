@@ -6,24 +6,25 @@ import numpy as np
 from aiymakerkit import vision
 import readchar
 from sklearn.cluster import DBSCAN
-from sklearn.linear_model import RANSACRegressor
-
 px = Picarx()
+
 px.set_cam_tilt_angle(-10)
+#px.set_cam_pan_angle(pan_angle)
 
 def cluster_centroids(x, y):
     if len(x) < 3:
         return x, y  # Not enough points to cluster
 
+    # Combine x and y into coordinate pairs
     coords = np.column_stack((x, y))
 
-    # Automatically adjust `eps` based on the data spread
-    eps = max(np.std(x), 20)  # Ensure a reasonable neighborhood size
-    dbscan = DBSCAN(eps=eps, min_samples=3)
+    # DBSCAN: eps determines neighborhood size, min_samples is min cluster size
+    dbscan = DBSCAN(eps=30, min_samples=3)  # Adjust eps as needed
     labels = dbscan.fit_predict(coords)
 
+    # Keep only the largest cluster
     unique_labels, counts = np.unique(labels, return_counts=True)
-    if len(unique_labels) < 2:
+    if len(unique_labels) < 2:  
         return x, y  # No clusters found, return original
 
     largest_cluster_label = unique_labels[np.argmax(counts)]
@@ -31,57 +32,152 @@ def cluster_centroids(x, y):
 
     return x[mask], y[mask]
 
-def remove_outliers(x, y):
-    if len(x) < 3:
-        return x, y
+def detect_lane_centroids(img, height, width):
+    yellow_lower = np.array([15, 100, 100])
+    yellow_upper = np.array([30, 255, 255])
+    white_lower = np.array([0, 0, 200])
+    white_upper = np.array([255, 30, 255])
 
-    # Fit an initial rough line
-    m, b = np.polyfit(x, y, 1)
-    residuals = np.abs(y - (m * x + b))
+    # Convert to HSV and create masks
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+    white_mask = cv2.inRange(hsv, white_lower, white_upper)
+
+    # Combine masks
+    combined = cv2.addWeighted(yellow_mask, 1.0, white_mask, 0.5, 0)
     
-    # Use standard deviation instead of MAD for better accuracy
-    std_dev = np.std(residuals)
-    threshold = 2.0 * std_dev  # Remove points that deviate too much
-    mask = residuals < threshold
+    # --- Triangular ROI ---
+    roi_points = np.array([
+        [0, height],
+        [0, 3*height//4],           # Bottom-left
+        #[width // 2, height // 2],  # Middle-top
+        [width, 3*height//4],       # Bottom-right
+        [width, height]             # Bottom-right
+    ], np.int32)
 
-    return x[mask], y[mask]
+    # Create mask for the ROI
+    mask = np.zeros_like(combined)
+    cv2.fillPoly(mask, [roi_points], 255)  # Fill the triangular ROI with white
+
+    # Invert mask: Everything outside the ROI is white (shaded area)
+    mask_inv = cv2.bitwise_not(mask)
+
+    # Create a full-screen dark overlay
+    overlay = img.copy()
+    overlay[:] = (0, 100, 0)  # Dark green tint
+
+    # Apply the mask to the overlay (shade only outside ROI)
+    shaded_area = cv2.bitwise_and(overlay, overlay, mask=mask_inv)
+
+    # Blend the shaded area with the original image
+    alpha = 0.5  # Transparency level
+    img[:] = cv2.addWeighted(img, 1, shaded_area, alpha, 0)
+
+    # Draw the ROI boundary in red
+    cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
+
+    #YELLOW
+    blurred_yellow = cv2.GaussianBlur(yellow_mask, (5, 5), 0)
+    yellow_edges = cv2.Canny(blurred_yellow, 50, 150)
+
+    #WHITE
+    blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
+    white_edges = cv2.Canny(blurred_white, 50, 150)
+
+    white_contours, _ = cv2.findContours(white_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    yellow_contours, _ = cv2.findContours(yellow_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    white_centroids = []
+    yellow_centroids = []
+    
+    def get_centroids(contours, color):
+        centroids = []
+        for contour in contours:
+            M = cv2.moments(contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+            
+            # Check if centroid is within the ROI
+                if cv2.pointPolygonTest(roi_points, (cx, cy), False) >= 0:
+                        centroids.append((cx, cy))
+                        cv2.circle(img, (cx, cy), 5, color, -1)
+        return centroids
+    yellow_centroids = get_centroids(yellow_contours, (0, 255, 255))
+    white_centroids = get_centroids(white_contours, (255, 255, 255))
+    return [yellow_centroids, white_centroids] 
+
+def convert_yellow_to_white(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    # Define yellow color range
+    yellow_lower = np.array([15, 100, 100])
+    yellow_upper = np.array([30, 255, 255])
+
+    # Create a mask for yellow
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper)
+
+    # Replace yellow pixels with white
+    img[yellow_mask > 0] = [255, 255, 255]  # Set to white (BGR)
+
+    return img
 
 def draw_best_fit_line(img, centroids, color):
-    if len(centroids) < 2:
+    if len(centroids) < 2: 
         return
 
-    x_vals = np.array([pt[0] for pt in centroids], dtype=np.float64)
-    y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
+    if len(centroids) > 1:  # Ensure enough points for a fit
+    # Extract x and y values from centroids
+        x_vals = np.array([pt[0] for pt in centroids], dtype=np.float64)
+        y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
 
     valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
-    x_vals, y_vals = x_vals[valid_mask], y_vals[valid_mask]
+    x_vals, y_vals = cluster_centroids(x_vals, y_vals) 
 
-    # Apply clustering and filtering
-    x_vals, y_vals = cluster_centroids(x_vals, y_vals)
+    if len(x_vals) < 2 or np.all(x_vals == x_vals[0]): 
+        return
+
+    # Outlier filtering using Median Absolute Deviation (MAD)
+    def remove_outliers(x, y):
+        if len(x) < 3:  # Not enough points to filter
+            return x, y
+
+    # Fit initial line to get residuals
+        m, b = np.polyfit(x, y, 1)
+        residuals = np.abs(y - (m * x + b))  # Distance from line
+
+    # Compute MAD (Median Absolute Deviation)
+        mad = np.median(residuals)
+
+    # Filter: Keep points within a reasonable range (2 * MAD)
+        threshold = 1.5 * mad
+        mask = residuals < threshold
+
+        return x[mask], y[mask]  # Return filtered points
+
+# Remove outliers
     x_vals, y_vals = remove_outliers(x_vals, y_vals)
 
-    if len(x_vals) < 2:
-        return
-
+    if (len(x_vals) < 2):  # Ensure we still have enough points
+        return  
     try:
-        # **Use RANSAC instead of np.polyfit for robust line fitting**
-        model = RANSACRegressor()
-        model.fit(x_vals.reshape(-1, 1), y_vals)
-        m, b = model.estimator_.coef_[0], model.estimator_.intercept_
-    except:
+        m, b = np.polyfit(x_vals, y_vals, 1)
+    except np.linalg.LinAlgError:
         return
 
+# Define start and end points for the line
     height = img.shape[0]
     y_start = height  
     y_end = int(3 * height / 4)
     x_start = int((y_start - b) / m)
     x_end = int((y_end - b) / m)
 
-    # **Actually draw the robust best-fit line**
-    cv2.line(img, (x_start, y_start), (x_end, y_end), color, thickness=3)
+
 
 def process_image(img):
-    height, width = img.shape[:2]
+    height, width = img.shape[:2]  # Get height and width
+    image_center_x = width // 2
+    image_center_y = height // 2
+
     yellow_centroids, white_centroids = detect_lane_centroids(img, height, width)
 
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
@@ -98,4 +194,5 @@ try:
 finally:
     px.stop()
     cv2.destroyAllWindows()
+
 
