@@ -115,10 +115,19 @@ def process_image(img):
     yellow_centroids, white_centroids = detect_lane_centroids(img, height, width)
 
     def draw_best_fit_line(img, centroids, color):
+        if len(centroids) < 2: 
+            return
+
         if len(centroids) > 1:  # Ensure enough points for a fit
         # Extract x and y values from centroids
-            x_vals = np.array([pt[0] for pt in centroids])
-            y_vals = np.array([pt[1] for pt in centroids])
+            x_vals = np.array([pt[0] for pt in centroids], dtype=np.float64)
+            y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
+
+        valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
+        x_vals, y_vals = x_vals[valid_mask], y_vals[valid_mask]
+
+        if len(x_vals) < 2 or np.all(x_vals == x_vals[0]): 
+            return
 
         # Outlier filtering using Median Absolute Deviation (MAD)
             def remove_outliers(x, y):
@@ -141,22 +150,62 @@ def process_image(img):
         # Remove outliers
             x_vals, y_vals = remove_outliers(x_vals, y_vals)
 
-            if len(x_vals) < 2:  # Ensure we still have enough points
+            if len(x_vals) < 2 or np.app(x_vals == x_vals[0]):  # Ensure we still have enough points
                 return  
+def draw_best_fit_line(img, centroids, color):
+    if len(centroids) < 2:  # Ensure we have at least two points to fit a line
+        return  
 
-        # Fit the cleaned data
-            m, b = np.polyfit(x_vals, y_vals, 1)
+    # Extract x and y values
+    x_vals = np.array([pt[0] for pt in centroids], dtype=np.float64)
+    y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
 
-        # Define start and end points
-            height = img.shape[0]
-            y_start = height  
-            y_end = int(3 * height / 4)
-            x_start = int((y_start - b) / m)
-            x_end = int((y_end - b) / m)
+    # Remove NaN or Inf values before processing
+    valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
+    x_vals, y_vals = x_vals[valid_mask], y_vals[valid_mask]
 
-        # Ensure points are valid integers
-            if np.isfinite(x_start) and np.isfinite(x_end):
-                cv2.line(img, (x_start, y_start), (x_end, y_end), color, 3)
+    if len(x_vals) < 2 or np.all(x_vals == x_vals[0]):  # Prevent division by zero
+        return  
+
+    # Outlier filtering using Median Absolute Deviation (MAD)
+    def remove_outliers(x, y):
+        if len(x) < 3:
+            return x, y  # Not enough points for filtering
+
+        # Fit initial line
+        m, b = np.polyfit(x, y, 1)
+        residuals = np.abs(y - (m * x + b))  
+
+        # Compute MAD (Median Absolute Deviation)
+        mad = np.median(residuals)
+        threshold = 2 * mad  # Set rejection threshold
+
+        # Keep only inliers
+        mask = residuals < threshold
+        return x[mask], y[mask]
+
+    # Apply outlier removal
+    x_vals, y_vals = remove_outliers(x_vals, y_vals)
+
+    # Re-check if we still have enough points
+    if len(x_vals) < 2 or np.all(x_vals == x_vals[0]):  
+        return  
+    
+    try:
+        m, b = np.polyfit(x_vals, y_vals, 1)
+    except np.linalg.linAlgError:
+        return
+
+    # Define start and end points for the line
+    height = img.shape[0]
+    y_start = height  
+    y_end = int(3 * height / 4)
+    x_start = int((y_start - b) / m)
+    x_end = int((y_end - b) / m)
+
+    # Ensure valid numbers before drawing
+    if np.isfinite(x_start) and np.isfinite(x_end):
+        cv2.line(img, (x_start, y_start), (x_end, y_end), color, 3) 
 
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
