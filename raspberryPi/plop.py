@@ -5,11 +5,32 @@ import cv2
 import numpy as np
 from aiymakerkit import vision
 import readchar
-
+from sklearn.cluster import DBSCAN
 px = Picarx()
 
 px.set_cam_tilt_angle(-10)
 #px.set_cam_pan_angle(pan_angle)
+
+def cluster_centroids(x, y):
+    if len(x) < 3:
+        return x, y  # Not enough points to cluster
+
+    # Combine x and y into coordinate pairs
+    coords = np.column_stack((x, y))
+
+    # DBSCAN: eps determines neighborhood size, min_samples is min cluster size
+    dbscan = DBSCAN(eps=30, min_samples=3)  # Adjust eps as needed
+    labels = dbscan.fit_predict(coords)
+
+    # Keep only the largest cluster
+    unique_labels, counts = np.unique(labels, return_counts=True)
+    if len(unique_labels) < 2:  
+        return x, y  # No clusters found, return original
+
+    largest_cluster_label = unique_labels[np.argmax(counts)]
+    mask = labels == largest_cluster_label
+
+    return x[mask], y[mask]
 
 def detect_lane_centroids(img, height, width):
     yellow_lower = np.array([15, 100, 100])
@@ -110,7 +131,7 @@ def draw_best_fit_line(img, centroids, color):
         y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
 
     valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
-    x_vals, y_vals = x_vals[valid_mask], y_vals[valid_mask]
+    x_vals, y_vals = cluster_centroids(x_vals, y_vals) 
 
     if len(x_vals) < 2 or np.all(x_vals == x_vals[0]): 
         return
@@ -128,7 +149,7 @@ def draw_best_fit_line(img, centroids, color):
         mad = np.median(residuals)
 
     # Filter: Keep points within a reasonable range (2 * MAD)
-        threshold = 2 * mad
+        threshold = 1.5 * mad
         mask = residuals < threshold
 
         return x[mask], y[mask]  # Return filtered points
@@ -140,7 +161,7 @@ def draw_best_fit_line(img, centroids, color):
         return  
     try:
         m, b = np.polyfit(x_vals, y_vals, 1)
-    except np.linalg.linAlgError:
+    except np.linalg.LinAlgError:
         return
 
 # Define start and end points for the line
