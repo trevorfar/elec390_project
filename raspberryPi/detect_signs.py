@@ -36,7 +36,29 @@ def path(name):
     root = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(root, 'models', name)
 
+def handleState(state):
+    if currState == 0:
+        px.forward(80)  # Idle driving
+    elif currState == 1:
+        currGray = px.get_greyscale_data()
+        print(currGray)
+        if sum(currGray) == 1000:
+            px.forward(0)
+            currState = 5  # Transition to going straight
+    elif currState == 2:
+        print("Proceed with caution - Yield or duck detected")
+        # You can implement further logic to slow down or stop
+    elif currState == 3:
+        print("Turning left")
+        # Implement left turn logic
+    elif currState == 4:
+        print("Turning right")
+        # Implement right turn logic
+    elif currState == 5:
+        print("Going straight")
+        px.forward(100)  # Go straight
 
+    return currState
 #Model
 ROAD_SIGN_DETECTION_MODEL = path('efficientdet-lite.tflite')
 ROAD_SIGN_DETECTION_MODEL_EDGETPU = path('efficientdet-lite_edgetpu.tflite')
@@ -49,23 +71,11 @@ labels = read_label_file(ROAD_SIGN_DETECTION_LABELS)
 for frame in vision.get_frames():
     objects = detector.get_objects(frame, threshold=0.4)
     vision.draw_objects(frame, objects, labels)
-    def f(currState):
-        match currState:
-            case 0 :
-                px.forward(80)
-            case 1:
-                currGray = px.get_greyscale_data()
-                print(currGray)
-                if(sum(currGray) == 1000):
-                    px.forward(0)
-                    currState = 5
-                continue
-                
-
+    handleState(currState)
     if (objects):
-        for thing in objects
+        for thing in objects:
             #ducks in the road or yield sign, proceed with caution:
-            if (thing.id == 0 OR thing.id == 1 OR thing.id == 6):
+            if (thing.id == 0 or thing.id == 1 or thing.id == 6):
                 print("yield state")
                 currState = 2
             #stop sign detected
