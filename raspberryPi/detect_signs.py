@@ -38,12 +38,13 @@ def path(name):
 
 def handleState(currState):
     if currState == 0:
-        px.forward(10)  # Idle driving
+        px.forward(80)  # Idle driving
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
-        if sum(currGray) == 1000:
+        if sum(currGray) > 50:
             px.forward(0)
+            px.stop
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)
@@ -86,6 +87,4 @@ for frame in vision.get_frames():
                 currState = 1
                 #current_grayscale_value = px.get_grayscale_data()
     #handle states
-
-
-    
+px.stop()
