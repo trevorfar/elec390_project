@@ -261,7 +261,7 @@ def process_image(img):
         px.stop()
 
     return img
-"""
+
 try:
     for frame in vision.get_frames():
         processed = process_image(frame)
@@ -271,4 +271,4 @@ try:
 finally:
     px.stop()  # Ensure the car stops when exiting
     cv2.destroyAllWindows()
-"""
+
