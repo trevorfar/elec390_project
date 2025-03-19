@@ -38,13 +38,19 @@ def path(name):
 
 def handleState(currState):
     if currState == 0:
-        px.forward(10)  # Idle driving
+        px.forward(80)  # Idle driving
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
+<<<<<<< HEAD
         if sum(currGray) > 1000:
             px.forward(0)
             print("stopperd")
+=======
+        if sum(currGray) > 800:
+            px.forward(0)
+            px.stop
+>>>>>>> d07c8ad86ee35c7d61dcf337c136cde5ea2fac16
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)
@@ -70,23 +76,22 @@ ROAD_SIGN_DETECTION_LABELS = path('labels.txt')
 
 detector = vision.Detector(ROAD_SIGN_DETECTION_MODEL_EDGETPU)
 labels = read_label_file(ROAD_SIGN_DETECTION_LABELS)
-
-for frame in vision.get_frames():
-    objects = detector.get_objects(frame, threshold=0.4)
-    vision.draw_objects(frame, objects, labels)
-    handleState(currState)
-    if (objects):
-        for thing in objects:
-            #ducks in the road or yield sign, proceed with caution:
-            if (thing.id == 0 or thing.id == 1 or thing.id == 6):
-                print("yield state")
-                #urrState = 2
-            #stop sign detected
-            if (thing.id == 2):
-                print("dis bish a stop sign please slip it in")
-                currState = 1
+try:
+    for frame in vision.get_frames():
+        objects = detector.get_objects(frame, threshold=0.4)
+        vision.draw_objects(frame, objects, labels)
+        handleState(currState)
+        if (objects):
+            for thing in objects:
+                #ducks in the road or yield sign, proceed with caution:
+                if (thing.id == 0 or thing.id == 1 or thing.id == 6):
+                    print("yield state")
+                    #urrState = 2
+                #stop sign detected
+                if (thing.id == 2):
+                    print("dis bish a stop sign please slip it in")
+                    currState = 1
                 #current_grayscale_value = px.get_grayscale_data()
-    #handle states
-
-
-    
+            #handle states
+finally:
+    px.stop()
