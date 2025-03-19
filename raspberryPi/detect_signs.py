@@ -36,7 +36,7 @@ def path(name):
     root = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(root, 'models', name)
 
-def handleState(state):
+def handleState(currState):
     if currState == 0:
         px.forward(80)  # Idle driving
     elif currState == 1:
