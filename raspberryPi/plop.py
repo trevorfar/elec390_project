@@ -170,43 +170,16 @@ def process_image(img):
 
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
-
-
-def process_image(img):
-    height, width = img.shape[:2]
-    image_center_x = width // 2
-
-    #centroid_points = detect_lane_centroids(img, height, width)
-    #if len(centroid_points) > 0:
-     #   lowest_centroid = max(centroid_points, key=lambda p: p[1])
-      #  target_x, _ = lowest_centroid
-       # error = target_x - image_center_x
-
-        # Steering control (P-controller)
-        #Kp_steering = 0.1 
-        #steering_angle = np.clip(Kp_steering * error, -30, 30)
-        #px.set_dir_servo_angle(steering_angle)
-
-        # Speed control: Slow down if turning sharply
-        #Kp_speed = 1.5  # Adjust speed based on centering error
-        #base_speed = 30  # Base speed when centered
-        #speed_adjustment = max(10, base_speed - abs(Kp_speed * error))  # Min speed of 10
-        #px.forward(speed_adjustment)
-
-        #print(f"Steering: {steering_angle:.2f}")
- #   else:
-        # Stop if no lane detected
-#        px.stop()
+    
+    try:
+        for frame in vision.get_frames():
+            processed = process_image(frame)
+            cv2.imwrite("lane_detection_output.jpg", processed)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        px.stop()  # Ensure the car stops when exiting
+        cv2.destroyAllWindows()
 
     return img
-
-try:
-    for frame in vision.get_frames():
-        processed = process_image(frame)
-        cv2.imwrite("lane_detection_output.jpg", processed)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-finally:
-    px.stop()  # Ensure the car stops when exiting
-    cv2.destroyAllWindows()
 
