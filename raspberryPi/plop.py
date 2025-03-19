@@ -174,6 +174,8 @@ def process_image(img):
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
 
+    return img
+
 try:
     for frame in vision.get_frames():
         processed = process_image(frame)
