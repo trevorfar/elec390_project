@@ -271,4 +271,4 @@ try:
 finally:
     px.stop()  # Ensure the car stops when exiting
     cv2.destroyAllWindows()
-
+"""
