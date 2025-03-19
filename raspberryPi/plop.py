@@ -172,27 +172,25 @@ def process_image(img):
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
 
     
-    """
-    if len(centroid_points) > 0:
-        lowest_centroid = max(centroid_points, key=lambda p: p[1])
-        target_x, _ = lowest_centroid
-        error = target_x - image_center_x
+    #if len(centroid_points) > 0:
+        #lowest_centroid = max(centroid_points, key=lambda p: p[1])
+        #target_x, _ = lowest_centroid
+        #error = target_x - image_center_x
      
 
         #Steeringcontrol (P-controller)
-        Kp_steering = 0.1 
-        steering_angle = np.clip(Kp_steering * error, -30, 30)
-        px.set_dir_servo_angle(steering_angle)
+       # Kp_steering = 0.1 
+        #steering_angle = np.clip(Kp_steering * error, -30, 30)
+      #  px.set_dir_servo_angle(steering_angle)
 
          #Speed control: Slow down if turning sharply
-        Kp_speed = 3  # Adjust speed based on centering error
-        base_speed = 1  # Base speed when centered
+     #   Kp_speed = 3  # Adjust speed based on centering error
+    #    base_speed = 1  # Base speed when centered
         #time.sleep(5)
-        speed_adjustment = max(1, base_speed - abs(Kp_speed * error))  # Min speed of 10
-        px.forward(speed_adjustment)
-    else:
-        px.stop()
-    """
+     #   speed_adjustment = max(1, base_speed - abs(Kp_speed * error))  # Min speed of 10
+    #    px.forward(speed_adjustment)
+    #else:
+    #    px.stop()
     return img
 
 def process_image(img):
