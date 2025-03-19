@@ -40,7 +40,7 @@ def handleState(currState):
     if currState == 0:
         px.forward(80)  # Idle driving
     elif currState == 1:
-        currGray = px.get_greyscale_data()
+        currGray = px.get_grayscale_data()
         print(currGray)
         if sum(currGray) == 1000:
             px.forward(0)
