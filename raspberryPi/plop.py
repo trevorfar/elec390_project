@@ -81,12 +81,9 @@ def detect_lane_centroids(img, height, width):
                         centroids.append((cx, cy))
                         cv2.circle(img, (cx, cy), 5, color, -1)
         return centroids
-
     yellow_centroids = get_centroids(yellow_contours, (0, 255, 255))
     white_centroids = get_centroids(white_contours, (255, 255, 255))
-    
     return [yellow_centroids, white_centroids] 
-    #return db.labels_
 
 def convert_yellow_to_white(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -156,13 +153,9 @@ def draw_best_fit_line(img, centroids, color):
 
 
 def process_image(img):
-    #img = convert_yellow_to_white(img)  # Convert yellow to white first
     height, width = img.shape[:2]  # Get height and width
-    #bottom_half = img[h // 2 : h, :]  # Select bottom half explicitly
-    #height, width = bottom_half.shape[:2]
     image_center_x = width // 2
     image_center_y = height // 2
-
 
     yellow_centroids, white_centroids = detect_lane_centroids(img, height, width)
 
@@ -183,7 +176,7 @@ try:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 finally:
-    px.stop()  # Ensure the car stops when exiting
+    px.stop()
     cv2.destroyAllWindows()
 
 
