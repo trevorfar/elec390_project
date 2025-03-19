@@ -149,6 +149,7 @@ def draw_best_fit_line(img, centroids, color):
     y_end = int(3 * height / 4)
     x_start = int((y_start - b) / m)
     x_end = int((y_end - b) / m)
+    cv2.line(img, (x_start, y_start), (x_end, y_end), color, 2)
 
 
 
