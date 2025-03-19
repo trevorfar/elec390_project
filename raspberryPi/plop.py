@@ -234,7 +234,6 @@ def draw_best_fit_line(img, centroids, color):
     """
     return img
 
-"""
 def process_image(img):
     height, width = img.shape[:2]
     image_center_x = width // 2
