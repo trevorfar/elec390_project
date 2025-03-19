@@ -42,8 +42,9 @@ def handleState(currState):
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
-        if sum(currGray) == 1000:
+        if sum(currGray) > 1000:
             px.forward(0)
+            print("stopperd")
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)

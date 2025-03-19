@@ -36,7 +36,7 @@ def detect_lane_centroids(img, height, width):
 
     # Create mask for the ROI
     mask = np.zeros_like(combined)
-    cv2.fillPoly(mask, [roi_points], 255)  # Fill the triangular ROI with white
+    cv2.fillPoly(mask, [roi_pointsints], 255)  # Fill the triangular ROI with white
 
     # Invert mask: Everything outside the ROI is white (shaded area)
     mask_inv = cv2.bitwise_not(mask)
