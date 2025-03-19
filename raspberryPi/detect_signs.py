@@ -38,7 +38,7 @@ def path(name):
 
 def handleState(currState):
     if currState == 0:
-        px.forward(80)  # Idle driving
+        px.forward(10)  # Idle driving
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
