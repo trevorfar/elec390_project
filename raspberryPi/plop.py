@@ -36,7 +36,7 @@ def detect_lane_centroids(img, height, width):
 
     # Create mask for the ROI
     mask = np.zeros_like(combined)
-    cv2.fillPoly(mask, [roi_pointsints], 255)  # Fill the triangular ROI with white
+    cv2.fillPoly(mask, [roi_points], 255)  # Fill the triangular ROI with white
 
     # Invert mask: Everything outside the ROI is white (shaded area)
     mask_inv = cv2.bitwise_not(mask)
@@ -136,7 +136,7 @@ def draw_best_fit_line(img, centroids, color):
 # Remove outliers
     x_vals, y_vals = remove_outliers(x_vals, y_vals)
 
-    if len(x_vals) < 2 or np.app(x_vals == x_vals[0]):  # Ensure we still have enough points
+    if (len(x_vals) < 2):  # Ensure we still have enough points
         return  
     try:
         m, b = np.polyfit(x_vals, y_vals, 1)
@@ -158,11 +158,6 @@ def process_image(img):
     image_center_y = height // 2
 
     yellow_centroids, white_centroids = detect_lane_centroids(img, height, width)
-
-
-    # Ensure valid numbers before drawing
-    if np.isfinite(x_start) and np.isfinite(x_end):
-        cv2.line(img, (x_start, y_start), (x_end, y_end), color, 3) 
 
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
