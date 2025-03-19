@@ -63,10 +63,6 @@ def detect_lane_centroids(img, height, width):
     blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
     white_edges = cv2.Canny(blurred_white, 50, 150)
 
-    #cv2.imshow("YEDGES", yellow_edges)
-    #cv2.imshow("WEDGES", white_edges)
-    # Find contours
-    
     white_contours, _ = cv2.findContours(white_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     yellow_contours = cv2.findContours(yellow_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     white_centroids = []
@@ -119,22 +115,48 @@ def process_image(img):
     yellow_centroids, white_centroids = detect_lane_centroids(img, height, width)
 
     def draw_best_fit_line(img, centroids, color):
-        if len(centroids) > 1:  # Ensure there are enough points to fit a line
-            # Convert list of (x, y) tuples into separate x and y lists
+        if len(centroids) > 1:  # Ensure enough points for a fit
+        # Extract x and y values from centroids
             x_vals = np.array([pt[0] for pt in centroids])
             y_vals = np.array([pt[1] for pt in centroids])
 
-            # Fit a linear function (y = mx + b)
+        # Outlier filtering using Median Absolute Deviation (MAD)
+            def remove_outliers(x, y):
+                if len(x) < 3:  # Not enough points to filter
+                    return x, y
+
+            # Fit initial line to get residuals
+                m, b = np.polyfit(x, y, 1)
+                residuals = np.abs(y - (m * x + b))  # Distance from line
+
+            # Compute MAD (Median Absolute Deviation)
+                mad = np.median(residuals)
+
+            # Filter: Keep points within a reasonable range (2 * MAD)
+                threshold = 2 * mad
+                mask = residuals < threshold
+
+                return x[mask], y[mask]  # Return filtered points
+
+        # Remove outliers
+            x_vals, y_vals = remove_outliers(x_vals, y_vals)
+
+            if len(x_vals) < 2:  # Ensure we still have enough points
+                return  
+
+        # Fit the cleaned data
             m, b = np.polyfit(x_vals, y_vals, 1)
 
-            # Define start and end points for the line
-            y_start = height  # Bottom of the image
-            y_end = int(3 * height / 4)  # Near the middle of the image
+        # Define start and end points
+            height = img.shape[0]
+            y_start = height  
+            y_end = int(3 * height / 4)
             x_start = int((y_start - b) / m)
             x_end = int((y_end - b) / m)
 
-            # Draw the line on the image
-            cv2.line(img, (x_start, y_start), (x_end, y_end), color, 3)
+        # Ensure points are valid integers
+            if np.isfinite(x_start) and np.isfinite(x_end):
+                cv2.line(img, (x_start, y_start), (x_end, y_end), color, 3)
 
     draw_best_fit_line(img, yellow_centroids, (0, 255, 255))  # Yellow line
     draw_best_fit_line(img, white_centroids, (255, 255, 255))  # White line
