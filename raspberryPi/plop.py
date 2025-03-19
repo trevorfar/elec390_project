@@ -64,11 +64,11 @@ def detect_lane_centroids(img, height, width):
     white_edges = cv2.Canny(blurred_white, 50, 150)
 
     white_contours, _ = cv2.findContours(white_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    yellow_contours = cv2.findContours(yellow_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    yellow_contours, _ = cv2.findContours(yellow_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     white_centroids = []
     yellow_centroids = []
     
-    def get_centroids(contours, color)
+    def get_centroids(contours, color):
         centroids = []
         for contour in contours:
             M = cv2.moments(contour)
