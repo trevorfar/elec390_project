@@ -75,15 +75,15 @@ def detect_lane_centroids(img, height, width):
     def get_centroids(contours, color)
         centroids = []
         for contour in contours:
-        M = cv2.moments(contour)
-        if M["m00"] != 0:
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
+            M = cv2.moments(contour)
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
             
             # Check if centroid is within the ROI
-            if cv2.pointPolygonTest(roi_points, (cx, cy), False) >= 0:
-                    centroids.append((cx, cy))
-                    cv2.circle(img, (cx, cy), 5, color, -1)
+                if cv2.pointPolygonTest(roi_points, (cx, cy), False) >= 0:
+                        centroids.append((cx, cy))
+                        cv2.circle(img, (cx, cy), 5, color, -1)
         return centroids
 
     yellow_centroids = get_centroids(yellow_contours, (0, 255, 255))
