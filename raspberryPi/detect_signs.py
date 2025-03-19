@@ -6,7 +6,6 @@ import time
 from pycoral.utils.dataset import read_label_file
 import os.path
 from picarx import Picarx
-import readchar
 px = Picarx()
 
 #label_list = [
@@ -40,50 +39,27 @@ def path(name):
 def handleState(currState):
     if currState == 0:
         px.forward(80)  # Idle driving
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
         if sum(currGray) > 800:
             px.forward(0)
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
+            px.stop
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
         # You can implement further logic to slow down or stop
     elif currState == 3:
         print("Turning left")
         px.forward(0)
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
         # Implement left turn logic
     elif currState == 4:
         print("Turning right")
         px.forward(0)
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
         # Implement right turn logic
     elif currState == 5:
         print("Going straight")
-        px.forward(0)
-        key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop()   # Go straight
+        px.forward(0)  # Go straight
 
     return currState
 #Model
@@ -94,33 +70,22 @@ ROAD_SIGN_DETECTION_LABELS = path('labels.txt')
 
 detector = vision.Detector(ROAD_SIGN_DETECTION_MODEL_EDGETPU)
 labels = read_label_file(ROAD_SIGN_DETECTION_LABELS)
-
-for frame in vision.get_frames():
-    objects = detector.get_objects(frame, threshold=0.4)
-    vision.draw_objects(frame, objects, labels)
-    handleState(currState)
-    key = readchar.readkey()
-        key = key.lower()
-            if key in('wsadikjl'):
-                px.stop() 
-    if (objects):
-        for thing in objects:
-            #ducks in the road or yield sign, proceed with caution:
-            if (thing.id == 0 or thing.id == 1 or thing.id == 6):
-                print("yield state")
-                key = readchar.readkey()
-                key = key.lower()
-                    if key in('wsadikjl'):
-                        px.stop() 
-                #urrState = 2
-            #stop sign detected
-            if (thing.id == 2):
-                print("dis bish a stop sign please slip it in")
-                currState = 1
-                key = readchar.readkey()
-                key = key.lower()
-                    if key in('wsadikjl'):
-                        px.stop() 
+try:
+    for frame in vision.get_frames():
+        objects = detector.get_objects(frame, threshold=0.4)
+        vision.draw_objects(frame, objects, labels)
+        handleState(currState)
+        if (objects):
+            for thing in objects:
+                #ducks in the road or yield sign, proceed with caution:
+                if (thing.id == 0 or thing.id == 1 or thing.id == 6):
+                    print("yield state")
+                    #urrState = 2
+                #stop sign detected
+                if (thing.id == 2):
+                    print("dis bish a stop sign please slip it in")
+                    currState = 1
                 #current_grayscale_value = px.get_grayscale_data()
-    #handle states
-px.stop()
+            #handle states
+finally:
+    px.stop()
