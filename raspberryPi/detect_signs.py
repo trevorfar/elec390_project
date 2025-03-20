@@ -42,15 +42,11 @@ def handleState(currState):
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
-<<<<<<< HEAD
-        if sum(currGray) > 1000:
+        if ((currGray[0]>800 and currGray[1]>800) or (currGray[0]>800 and currGray[2]>800) or (currGray[1]>800 and currGray[2]>800))
             px.forward(0)
-            print("stopperd")
-=======
-        if sum(currGray) > 800:
-            px.forward(0)
-            px.stop
->>>>>>> d07c8ad86ee35c7d61dcf337c136cde5ea2fac16
+            print("stopped")
+            sleep(1)
+            currState==5
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)
@@ -65,7 +61,7 @@ def handleState(currState):
         # Implement right turn logic
     elif currState == 5:
         print("Going straight")
-        px.forward(0)  # Go straight
+        px.forward(10)  # Go straight
 
     return currState
 #Model
