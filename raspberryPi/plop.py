@@ -99,7 +99,7 @@ def process_image(img):
     
     line_img = draw_lines(img, lines)
     plt.figure()
-    plt.imshow("hough", line_img)
+    plt.imshow(line_img)
     plt.show()
     return img
 
