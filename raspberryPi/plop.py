@@ -32,6 +32,12 @@ def detect_lane_edges(img, height, width):
     mask = np.zeros_like(combined)
     cv2.fillPoly(mask, [roi_points], 255)
     
+    blurred_yellow = cv2.GaussianBlur(yellow_mask, (5, 5), 0)
+    yellow_edges = cv2.Canny(cv2.GaussianBlur(blurred_yellow, (5, 5), 0), 50, 150)
+    
+    blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
+    white_edges = cv2.Canny(cv2.GaussianBlur(blurred_white, (5, 5), 0), 50, 150)
+    
     mask_inv = cv2.bitwise_not(mask)
     overlay = img.copy()
     overlay[:] = (0, 100, 0)
@@ -39,15 +45,14 @@ def detect_lane_edges(img, height, width):
     alpha = 0.5
     img[:] = cv2.addWeighted(img, 1, shaded_area, alpha, 0)
     
+    masked_yellow = cv2.bitwise_and(yellow_edges, yellow_edges, mask=mask)
+    masked_white = cv2.bitwise_and(white_edges, white_edges, mask=mask)
+
     cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
     
-    blurred_yellow = cv2.GaussianBlur(yellow_mask, (5, 5), 0)
-    yellow_edges = cv2.Canny(cv2.GaussianBlur(blurred_yellow, (5, 5), 0), 50, 150)
-    
-    blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
-    white_edges = cv2.Canny(cv2.GaussianBlur(blurred_white, (5, 5), 0), 50, 150)
+   
 
-    return yellow_edges, white_edges, mask
+    return masked_yellow, masked_white, mask
 
 def extract_edge_points(edges):
     points = np.column_stack(np.where(edges > 0))
