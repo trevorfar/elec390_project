@@ -76,7 +76,16 @@ def draw_best_fit_line(img, x_vals, y_vals, color):
 def process_image(img):
     height, width = img.shape[:2]
     yellow_edges, white_edges, roi_mask = detect_lane_edges(img, height, width)
-
+    
+    yellow_edges_colored = cv2.cvtColor(yellow_edges, cv2.COLOR_GRAY2BGR)
+    white_edges_colored = cv2.cvtColor(white_edges, cv2.COLOR_GRAY2BGR)
+    
+    yellow_edges_colored[:] = (0, 0, 0)
+    white_edges_colored[:] = (0, 0, 0)
+    
+    img_with_edges = cv2.addWeighted(img, 1, yellow_edges_colored, 0.7, 0)
+    img_with_edges = cv2.addWeighted(img_with_edges, 1, white_edges_colored, 0.7, 0)
+    
     yellow_x, yellow_y = extract_edge_points(yellow_edges)
     white_x, white_y = extract_edge_points(white_edges)
 
@@ -88,7 +97,8 @@ def process_image(img):
 try:
     for frame in vision.get_frames():
         processed = process_image(frame)
-        cv2.imwrite("lane_detection_output.jpg", processed)
+        #cv2.imwrite("lane_detection_output.jpg", processed)
+        cv2.imshow("lane detection", processed)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 finally:
