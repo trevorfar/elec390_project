@@ -36,17 +36,19 @@ def path(name):
     root = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(root, 'models', name)
 
-def handleState(currState):
+def handleState():
+    global currState
+    
     if currState == 0:
-        px.forward(80)  # Idle driving
+        px.forward(10)  # Idle driving
     elif currState == 1:
         currGray = px.get_grayscale_data()
         print(currGray)
-        if ((currGray[0]>800 and currGray[1]>800) or (currGray[0]>800 and currGray[2]>800) or (currGray[1]>800 and currGray[2]>800))
+        if ((currGray[0]>800 and currGray[1]>800) or (currGray[0]>800 and currGray[2]>800) or (currGray[1]>800 and currGray[2]>800)):
             px.forward(0)
             print("stopped")
-            sleep(1)
-            currState==5
+            time.sleep(5)
+            currState =5
     elif currState == 2:
         print("Proceed with caution - Yield or duck detected")
         px.forward(0)
@@ -62,8 +64,6 @@ def handleState(currState):
     elif currState == 5:
         print("Going straight")
         px.forward(10)  # Go straight
-
-    return currState
 #Model
 ROAD_SIGN_DETECTION_MODEL = path('efficientdet-lite.tflite')
 ROAD_SIGN_DETECTION_MODEL_EDGETPU = path('efficientdet-lite_edgetpu.tflite')
@@ -76,7 +76,7 @@ try:
     for frame in vision.get_frames():
         objects = detector.get_objects(frame, threshold=0.4)
         vision.draw_objects(frame, objects, labels)
-        handleState(currState)
+        handleState()
         if (objects):
             for thing in objects:
                 #ducks in the road or yield sign, proceed with caution:
