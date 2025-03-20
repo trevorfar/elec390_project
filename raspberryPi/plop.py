@@ -31,9 +31,21 @@ def detect_lane_edges(img, height, width):
 
     mask = np.zeros_like(combined)
     cv2.fillPoly(mask, [roi_points], 255)
-
-    yellow_edges = cv2.Canny(cv2.GaussianBlur(yellow_mask, (5, 5), 0), 50, 150)
-    white_edges = cv2.Canny(cv2.GaussianBlur(white_mask, (5, 5), 0), 50, 150)
+    
+    mask_inv = cv2.bitwise_not(mask)
+    overlay = img.copy()
+    overlay[:] = (0, 100, 0)
+    shaded_area = cv2.bitwise_and(overlay, overlay, mask=mask_inv)
+    alpha = 0.5
+    img[:] = cv2.addWeighted(img, 1, shaded_area, alpha, 0)
+    
+    cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
+    
+    blurred_yellow = cv2.GaussianBlur(yellow_mask, (5, 5), 0)
+    yellow_edges = cv2.Canny(cv2.GaussianBlur(blurred_yellow, (5, 5), 0), 50, 150)
+    
+    blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
+    white_edges = cv2.Canny(cv2.GaussianBlur(blurred_white, (5, 5), 0), 50, 150)
 
     return yellow_edges, white_edges, mask
 
@@ -45,56 +57,7 @@ def draw_best_fit_line(img, x_vals, y_vals, color):
     if len(x_vals) < 2:
         return
 
-<<<<<<< HEAD
-    if len(centroids) > 1:  # Ensure enough points for a fit
-    # Extract x and y values from centroids
-        x_vals = np.array([pt[0] for pt in centroids], dtype=np.float64)
-        y_vals = np.array([pt[1] for pt in centroids], dtype=np.float64)
-
-    valid_mask = np.isfinite(x_vals) & np.isfinite(y_vals)
-    x_vals, y_vals = cluster_centroids(x_vals, y_vals) 
-
-    if len(x_vals) < 2 or np.all(x_vals == x_vals[0]): 
-        return
-
-    # Outlier filtering using Median Absolute Deviation (MAD)
-    def remove_outliers(x, y):
-        if len(x) < 3:  # Not enough points to filter
-            return x, y
-
-    # Fit initial line to get residuals
-        m, b = np.polyfit(x, y, 1)
-        residuals = np.abs(y - (m * x + b))  # Distance from line
-
-    # Compute MAD (Median Absolute Deviation)
-        mad = np.median(residuals)
-
-    # Filter: Keep points within a reasonable range (2 * MAD)
-        threshold = 1.5 * mad
-        mask = residuals < threshold
-
-        return x[mask], y[mask]  # Return filtered points
-
-# Remove outliers
-    x_vals, y_vals = remove_outliers(x_vals, y_vals)
-
-    if (len(x_vals) < 2):  # Ensure we still have enough points
-        return  
-    try:
-        m, b = np.polyfit(x_vals, y_vals, 1)
-    except np.linalg.LinAlgError:
-        return
-
-# Define start and end points for the line
-    height = img.shape[0]
-    y_start = height  
-    y_end = int(3 * height / 4)
-    x_start = int((y_start - b) / m)
-    x_end = int((y_end - b) / m)
-    cv2.line(img, (x_start, y_start), (x_end, y_end), color, 2)
-=======
     x_vals, y_vals = np.array(x_vals), np.array(y_vals)
->>>>>>> fbe279fcf6ce0fc7502c5e74d2be78635a2f0a7b
 
     # Use RANSAC to remove outliers
     model = RANSACRegressor()
@@ -126,4 +89,3 @@ try:
 finally:
     px.stop()
     cv2.destroyAllWindows()
-
