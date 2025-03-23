@@ -10,6 +10,44 @@ import matplotlib.pyplot as plt
 px = Picarx()
 px.set_cam_tilt_angle(-10)
 
+def calculate_steering_angle(img, lines):
+    height, width = img.shape[:2]
+    right_lines = []
+
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            slope = (y2 - y1) / (x2 - x1 + 0.0001)  # Avoid division by zero
+            if slope > 0.3:  # Right lane detection (adjust slope threshold if needed)
+                right_lines.append((x1, y1, x2, y2))
+
+    if not right_lines:
+        print("No right lane detected!")
+        return 0  # Keep the car going straight if no right lane is detected
+
+    # Find the best-fit right line
+    right_x = np.mean([x1 for x1, _, x2, _ in right_lines])
+    right_y = np.mean([y1 for _, y1, _, y2 in right_lines])
+
+    # Define a reference point at the bottom of the image (car's position)
+    car_x = width // 2
+    car_y = height
+
+    # Calculate deviation: how far right the lane is from the car's center
+    deviation = right_x - car_x
+
+    # Convert deviation to steering angle
+    max_steering = 30
+    steering_angle = (deviation / (width // 2)) * max_steering
+    return np.clip(steering_angle, -max_steering, max_steering)
+
+def control_car(steering_angle):    
+    servo_angle = int(steering_angle)
+    px.set_dir_servo_angle(servo_angle)
+    px.forward(10)  # Adjust speed based on your testing
+
+    print(f"Steering: {servo_angle}°")
+
+
 def detect_lane_edges(img, height, width):
     white_lower = np.array([0, 0, 200])
     white_upper = np.array([255, 30, 255])
@@ -61,7 +99,7 @@ def draw_best_fit_line(img, x_vals, y_vals, color):
     model.fit(x_vals.reshape(-1, 1), y_vals)
     
     x_start, x_end = np.min(x_vals), np.max(x_vals)
-    y_start, y_end = model.predict([[x_start], [x_end]])
+    y_start, y_end = model.predict(np.array([[x_start], [x_end]])).flatten()
     cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color, 2)
 
 def draw_lines(img, lines, color=[255, 0 ,0], thickness = 3):
@@ -96,18 +134,17 @@ def process_image(img):
      minLineLength=40,
      maxLineGap=25
     )
+    if lines is not None:
+        img = draw_lines(img, lines, color=[0, 255, 0], thickness=3)
+        steering_angle = calculate_steering_angle(img, lines)
+        control_car(steering_angle)
     
-    line_img = draw_lines(img, lines)
-    plt.figure()
-    plt.imshow(line_img)
-    plt.show()
+    cv2.imshow("hough", img)
     return img
 
 try:
     for frame in vision.get_frames():
         processed = process_image(frame)
-        #cv2.imwrite("lane_detection_output.jpg", processed)
-        #cv2.imshow("lane detection", processed)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 finally:
