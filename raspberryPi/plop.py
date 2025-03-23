@@ -19,8 +19,8 @@ def calculate_steering_angle(img, lines):
     for line in lines:
         for x1, y1, x2, y2 in line:
             slope = (y2 - y1) / (x2 - x1 + 0.0001)  # Avoid division by zero
-            if slope > 0.3:  # Right lane detection (adjust slope threshold if needed)
-                right_lines.append((x1, y1, x2, y2))
+            #if slope > 0.3:  # Right lane detection (adjust slope threshold if needed)
+            right_lines.append((x1, y1, x2, y2))
 
     if not right_lines:
         print("No right lane detected!")
@@ -42,11 +42,11 @@ def calculate_steering_angle(img, lines):
 def control_car(steering_angle):    
     servo_angle = int(steering_angle)
     px.set_dir_servo_angle(servo_angle)
-    px.forward(10)  # Adjust speed based on your testing
+    px.forward(5)  # Adjust speed based on your testing
 
     print(f"Steering: {servo_angle}°")
-    time.sleep(0.2)  # Allow time for correction before next frame
-
+    #time.sleep(0.1)  # Allow time for correction before next frame
+    px.set_dir_servo_angle(-5)
 
 def detect_lane_edges(img, height, width):
     white_lower = np.array([0, 0, 200])
