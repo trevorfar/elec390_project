@@ -32,21 +32,23 @@ def calculate_steering_angle(img, lines):
     car_x = width // 2  
     deviation = lane_center_x - car_x
     max_steering = 30
-    steering_angle = (deviation / (width // 2)) * max_steering
+    steering_angle = ((deviation / (width // 2)) * max_steering )
 
     print(f"Detected Right Lane at {lane_center_x}, Deviation: {deviation}, Steering Angle: {steering_angle:.2f}")
     
     return np.clip(steering_angle, -max_steering, max_steering)
 
 
-def control_car(steering_angle):    
-    servo_angle = int(steering_angle)
-    px.set_dir_servo_angle(servo_angle)
-    px.forward(5)  # Adjust speed based on your testing
-
-    print(f"Steering: {servo_angle}°")
+def control_car(steering_angle):
+    px.set_dir_servo_angle(int(steering_angle))
+    px.forward(1)
+    turn_strength = abs(steering_angle) / 30
+    sleep_time = 0.05 + (0.15 * turn_strength)
+    time.sleep(sleep_time)
+    px.set_dir_servo_angle(-3)
+    
     #time.sleep(0.1)  # Allow time for correction before next frame
-    px.set_dir_servo_angle(-5)
+    #px.set_dir_servo_angle(-5)
 
 def detect_lane_edges(img, height, width):
     white_lower = np.array([0, 0, 200])
