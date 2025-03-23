@@ -24,21 +24,15 @@ def calculate_steering_angle(img, lines):
         print("No right lane detected!")
         return 0  # Keep the car going straight if no right lane is detected
 
-    # Find the best-fit right line
-    right_x = np.mean([x1 for x1, _, x2, _ in right_lines])
-    right_y = np.mean([y1 for _, y1, _, y2 in right_lines])
-
-    # Define a reference point at the bottom of the image (car's position)
-    car_x = width // 2
-    car_y = height
-
-    # Calculate deviation: how far right the lane is from the car's center
-    deviation = right_x - car_x
-
-    # Convert deviation to steering angle
+    rightmost_line = max(right_lines, key=lambda l: max(l[0], l[2]))
+    x1, y1, x2, y2 = rightmost_line
+    lane_center_x = (x1 + x2) // 2  
+    car_x = width // 2  
+    deviation = lane_center_x - car_x
     max_steering = 30
     steering_angle = (deviation / (width // 2)) * max_steering
     return np.clip(steering_angle, -max_steering, max_steering)
+
 
 def control_car(steering_angle):    
     servo_angle = int(steering_angle)
