@@ -20,11 +20,12 @@ def calculate_steering_angle(img, lines):
     for line in lines:
         for x1, y1, x2, y2 in line:
             slope = (y2 - y1) / (x2 - x1 + 0.0001)  # Avoid division by zero
-            right_lines.append((x1, y1, x2, y2))
+            if slope > 0.2:  # Ensure we're looking at a reasonable lane line
+                right_lines.append((x1, y1, x2, y2))
 
     if not right_lines:
-        print("No right lane detected!")
-        return 0  
+        print("No right lane detected! Keeping last steering angle.")
+        return prev_steering_angle  
 
     rightmost_line = max(right_lines, key=lambda l: max(l[0], l[2]))
     x1, y1, x2, y2 = rightmost_line
@@ -34,17 +35,13 @@ def calculate_steering_angle(img, lines):
     max_steering = 30
     steering_angle = ((deviation / (width // 2)) * max_steering )
 
-    print(f"Detected Right Lane at {lane_center_x}, Deviation: {deviation}, Steering Angle: {steering_angle:.2f}")
+    print(f"Lane Center: {lane_center_x}, Deviation: {deviation}, Steering: {steering_angle:.2f}")
     
     return np.clip(steering_angle, -max_steering, max_steering)
 
 def control_car(steering_angle):
     px.set_dir_servo_angle(int(steering_angle))
-    px.set_motor_speed(1, 1)
-    px.set_motor_speed(2, -1)
-
-    turn_strength = abs(steering_angle) / 30
-    time.sleep(0.05 + (0.2 * turn_strength))  # Adaptive delay
+    px.forward(20)  # Move forward at a reasonable speed
 
 def detect_lane_edges(img, height, width):
     white_lower = np.array([0, 0, 200])
@@ -66,18 +63,9 @@ def detect_lane_edges(img, height, width):
     blurred_white = cv2.GaussianBlur(white_mask, (5, 5), 0)
     white_edges = cv2.Canny(cv2.GaussianBlur(blurred_white, (5, 5), 0), 50, 150)
     
-    mask_inv = cv2.bitwise_not(mask)
-    overlay = img.copy()
-    overlay[:] = (0, 100, 0)
-    shaded_area = cv2.bitwise_and(overlay, overlay, mask=mask_inv)
-    alpha = 0.5
-    img[:] = cv2.addWeighted(img, 1, shaded_area, alpha, 0)
-    
     masked_white = cv2.bitwise_and(white_edges, white_edges, mask=mask)
 
-    cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
-
-    return masked_white, mask
+    return masked_white
 
 def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
     if lines is None:
@@ -94,17 +82,16 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
 def process_image(img):
     global frame_count, prev_steering_angle
     height, width = img.shape[:2]
-    white_edges, roi_mask = detect_lane_edges(img, height, width)
-    cv2.imshow("white", white_edges)
+    white_edges = detect_lane_edges(img, height, width)
+    cv2.imshow("Edges", white_edges)
 
     lines = cv2.HoughLinesP(
         white_edges,
         rho=6,
         theta=np.pi/60,
-        threshold=160,
-        lines=np.array([]),
-        minLineLength=40,
-        maxLineGap=25
+        threshold=120,  # Lowered to improve detection in noisy conditions
+        minLineLength=30,
+        maxLineGap=20
     )
 
     if lines is not None:
@@ -112,17 +99,19 @@ def process_image(img):
         
         # Smooth steering adjustment
         steering_angle = calculate_steering_angle(img, lines)
-        smoothed_angle = (0.8 * prev_steering_angle) + (0.2 * steering_angle)
+        smoothed_angle = (0.7 * prev_steering_angle) + (0.3 * steering_angle)  # More stable
         prev_steering_angle = smoothed_angle
         control_car(smoothed_angle)
+    else:
+        print("No lines detected, maintaining last steering angle.")
 
-    cv2.imshow("hough", img)
+    cv2.imshow("Processed", img)
     frame_count += 1
     return img
 
 try:
     for frame in vision.get_frames():
-        processed = process_image(frame)
+        process_image(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 finally:
