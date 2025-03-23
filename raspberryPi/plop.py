@@ -41,11 +41,14 @@ def calculate_steering_angle(img, lines):
 
 def control_car(steering_angle):
     px.set_dir_servo_angle(int(steering_angle))
-    px.forward(1)
+    #px.forward(1)
+    px.set_motor_speed(1, 1)
+    px.set_motor_speed(2, -1)
     turn_strength = abs(steering_angle) / 30
-    sleep_time = 0.05 + (0.15 * turn_strength)
-    time.sleep(sleep_time)
-    px.set_dir_servo_angle(-3)
+    sleep_time = 0.05 + (0.3 * turn_strength)
+#    time.sleep(0.1)
+    time.sleep(1) 
+    px.set_dir_servo_angle(0)
     
     #time.sleep(0.1)  # Allow time for correction before next frame
     #px.set_dir_servo_angle(-5)
@@ -56,7 +59,6 @@ def detect_lane_edges(img, height, width):
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     white_mask = cv2.inRange(hsv, white_lower, white_upper)
-    cv2.imshow("white_mask", white_mask)
 
     roi_points = np.array([
         [0, height],
