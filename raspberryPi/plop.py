@@ -6,9 +6,11 @@ import numpy as np
 from aiymakerkit import vision
 import readchar
 from sklearn.linear_model import RANSACRegressor
-import matplotlib.pyplot as plt
+
 px = Picarx()
 px.set_cam_tilt_angle(-10)
+
+frame_count = 0  # Added frame counter
 
 def calculate_steering_angle(img, lines):
     height, width = img.shape[:2]
@@ -31,6 +33,9 @@ def calculate_steering_angle(img, lines):
     deviation = lane_center_x - car_x
     max_steering = 30
     steering_angle = (deviation / (width // 2)) * max_steering
+
+    print(f"Detected Right Lane at {lane_center_x}, Deviation: {deviation}, Steering Angle: {steering_angle:.2f}")
+    
     return np.clip(steering_angle, -max_steering, max_steering)
 
 
@@ -40,6 +45,7 @@ def control_car(steering_angle):
     px.forward(10)  # Adjust speed based on your testing
 
     print(f"Steering: {servo_angle}°")
+    time.sleep(0.2)  # Allow time for correction before next frame
 
 
 def detect_lane_edges(img, height, width):
@@ -73,67 +79,47 @@ def detect_lane_edges(img, height, width):
     masked_white = cv2.bitwise_and(white_edges, white_edges, mask=mask)
 
     cv2.polylines(img, [roi_points], isClosed=True, color=(0, 0, 255), thickness=2)
-    
-   
 
     return masked_white, mask
 
-def extract_edge_points(edges):
-    points = np.column_stack(np.where(edges > 0))
-    return points[:, 1], points[:, 0]  # Return x, y coordinates
-
-def draw_best_fit_line(img, x_vals, y_vals, color):
-    if len(x_vals) < 2:
-        return
-
-    x_vals, y_vals = np.array(x_vals), np.array(y_vals)
-
-    # Use RANSAC to remove outliers
-    model = RANSACRegressor()
-    model.fit(x_vals.reshape(-1, 1), y_vals)
-    
-    x_start, x_end = np.min(x_vals), np.max(x_vals)
-    y_start, y_end = model.predict(np.array([[x_start], [x_end]])).flatten()
-    cv2.line(img, (int(x_start), int(y_start)), (int(x_end), int(y_end)), color, 2)
-
-def draw_lines(img, lines, color=[255, 0 ,0], thickness = 3):
+def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
     if lines is None:
-        return
+        return img
     img = np.copy(img)
-    line_img = np.zeros((
-        img.shape[0],
-        img.shape[1],
-        3
-    ),
-    dtype=np.uint8
-    )
+    line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     
     for line in lines:
         for x1, y1, x2, y2 in line:
             cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
-    img = cv2.addWeighted(img, 0.8, line_img, 1.0, 0.0)
-    return img
+    
+    return cv2.addWeighted(img, 0.8, line_img, 1.0, 0.0)
 
 def process_image(img):
+    global frame_count
     height, width = img.shape[:2]
     white_edges, roi_mask = detect_lane_edges(img, height, width)
     cv2.imshow("white", white_edges)
 
     lines = cv2.HoughLinesP(
-     white_edges,
-     rho=6,
-     theta=np.pi/60,
-     threshold=160,
-     lines=np.array([]),
-     minLineLength=40,
-     maxLineGap=25
+        white_edges,
+        rho=6,
+        theta=np.pi/60,
+        threshold=160,
+        lines=np.array([]),
+        minLineLength=40,
+        maxLineGap=25
     )
+
     if lines is not None:
         img = draw_lines(img, lines, color=[0, 255, 0], thickness=3)
-        steering_angle = calculate_steering_angle(img, lines)
-        control_car(steering_angle)
-    
+        
+        # Calculate steering angle every second frame
+        if frame_count % 2 == 0:
+            steering_angle = calculate_steering_angle(img, lines)
+            control_car(steering_angle)
+
     cv2.imshow("hough", img)
+    frame_count += 1  # Increment frame counter
     return img
 
 try:
