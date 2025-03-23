@@ -53,8 +53,8 @@ def detect_lane_edges(img, height, width):
     roi_points = np.array([
         [0, height],
         [0, 3*height//4],  
-        [width, 3*height//4],  
-        [width, height]  
+        [width//2, 3*height//4],  
+        [width//2, height]  
     ], np.int32)
 
     mask = np.zeros_like(white_mask)
