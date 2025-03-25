@@ -31,6 +31,53 @@ px = Picarx()
 #5 going straight. no blinkers, no steering angle
 #6 seeing one way sign - scan area and continue with caution
 currState = 0
+def move():
+    px.set_motor_speed(1, 1)
+    px.set_motor_speed(2, -1)
+def turnSmallLeft():
+    px.set_dir_servo_angle(30)
+    px.move()
+    time.sleep(0.5)
+    
+def turnSmallRight():
+    px.set_dir_servo_angle(-30)
+    px.move()
+    time.sleep(2)
+    
+def turnBigLeft():
+    print("sex")
+def turnBigRight():
+    print("sex")
+def checkStop():
+    sensor_values = px.get_grayscale_data()
+    currGray = sensor_values
+    move()
+    time.sleep(1)
+    currState =0;
+    if ((currGray[0]>200 and currGray[1]>200 and currGray[2]>200) and currState == 0):
+            px.forward(0)
+            print("stopped")
+            time.sleep(2)
+            currState = 2
+def adjust_direction():
+    """Adjust the car's direction based on grayscale sensor values."""
+    sensor_values = px.get_grayscale_data()
+    move()
+    #currState =0;
+    left_sensor = sensor_values[0]
+    right_sensor = sensor_values[2]
+    if(currState == 2):
+        turnSmallRight()
+        
+    if left_sensor > 200:
+        print("Left sensor detected high value! Turning right.")
+        px.set_dir_servo_angle(30)  
+    elif right_sensor > 200:
+        print("Right sensor detected high value! Turning left.")
+        px.set_dir_servo_angle(-30)  
+    
+    else:
+        px.set_dir_servo_angle(-2)
 
 def path(name):
     root = os.path.dirname(os.path.realpath(__file__))
@@ -77,6 +124,7 @@ try:
         objects = detector.get_objects(frame, threshold=0.4)
         vision.draw_objects(frame, objects, labels)
         handleState()
+        adjust_direction()
         if (objects):
             for thing in objects:
                 #ducks in the road or yield sign, proceed with caution:

@@ -118,7 +118,7 @@ def process_image(img):
         img = draw_lines(img, lines, color=[0, 255, 0], thickness=3)
         
         # Calculate steering angle every second frame
-        if frame_count % 2 == 0:
+        if frame_count % 1 == 0:
             steering_angle = calculate_steering_angle(img, lines)
             control_car(steering_angle)
 
