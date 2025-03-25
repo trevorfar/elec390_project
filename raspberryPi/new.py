@@ -7,6 +7,14 @@ import cv2
 import numpy as np
 from pycoral.utils.dataset import read_label_file
 import os.path
+from robot_hat import Pin
+import time
+
+forwardLights = Pin('D0')
+stopLights = Pin('D1')
+leftTurn = Pin('P8')
+rightTurn = Pin('P9')
+forwardLights.value(1)
          
 
 currState = State.idle_driving
@@ -86,6 +94,7 @@ def handle_state():
         
     elif(currState == State.stopping):
         print("stopping")
+         stopLights.value(1)
         currGray = px.get_grayscale_data()
         if ((currGray[0] > 300 and currGray[1] > 300 and currGray[2] > 300)):
             move(0)
@@ -98,6 +107,7 @@ def handle_state():
 
     elif(currState == State.stopped):
         print("stopped")
+         stopLights.value(0)
         if(drift and instructions[0] == "go")
             currState = State.drift
             drift = 0
