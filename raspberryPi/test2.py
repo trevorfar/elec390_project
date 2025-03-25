@@ -19,7 +19,7 @@ import time
 
 
 px = Picarx()
-instructions = ["turn_right", "turn_left"]
+instructions = ["turn_left", "turn_right"]
 speed = 1
 drift = 1
 yielding = 0
@@ -56,8 +56,11 @@ class State(Enum):
     big_right = 5
     big_left = 6
     drift = 7
+    
 currState = State.idle_driving
 def Encoder(instructions):
+     global currState
+     print(instructions)
      if(instructions == "turn_left"):
          currState = State.turn_left
      elif(instructions == "turn_right"):
@@ -72,10 +75,14 @@ def Encoder(instructions):
 
 
 def move(x):
+     #px.set_dir_servo_angle(-2)
      px.set_motor_speed(1, x)
      px.set_motor_speed(2, -x)
      
+     
 def turn(turn_radius, length):
+    global currState
+    global px
     px.set_dir_servo_angle(turn_radius)
     move(speed)
     time.sleep(length)
@@ -94,6 +101,7 @@ def handle_state():
         
     elif(currState == State.stopping):
         print("stopping")
+        adjust_direction()
         #stopLights.value(1)
         currGray = px.get_grayscale_data()
         if ((currGray[0] > 300 and currGray[1] > 300 and currGray[2] > 300)):
@@ -114,12 +122,14 @@ def handle_state():
         #else:
         Encoder(instructions[0])
         instructions.pop(0)
+        move(1)
+        time.sleep(1)
     elif(currState == State.turn_right):
         print("right")
-        turn(30, 2)
+        turn(10, 2)
     elif(currState == State.turn_left):
         print("left")
-        turn(-30, 2)
+        turn(-15, 2)
     elif(currState == State.big_right):
         print("big right")
         turn(20, 3)
